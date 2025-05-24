@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大阪万博パビリオン待ち時間ポスト</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="images/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>大阪万博パビリオン待ち時間ポスト</h1>
+            <p class="date">2025年5月24日</p>
+        </header>
+        
+        <main>
+            <form id="waiting-time-form">
+                <div class="form-group">
+                    <label for="category">カテゴリ</label>
+                    <select id="category" name="category" required>
+                        <option value="" disabled selected>選択してください</option>
+                        <option value="domestic">国内パビリオン</option>
+                        <option value="foreign">海外パビリオン</option>
+                        <option value="signature">シグネチャーパビリオン</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="pavilion">パビリオン</label>
+                    <select id="pavilion" name="pavilion" disabled required>
+                        <option value="" disabled selected>カテゴリを選択してください</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="waiting-time">待ち時間</label>
+                    <div class="time-selector">
+                        <select id="hours" name="hours">
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                            <option value="11">11</option>
+                            <option value="12">12</option>
+                        </select>
+                        <label for="hours">時間</label>
+                        
+                        <select id="minutes" name="minutes">
+                            <option value="0">0</option>
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                            <option value="15">15</option>
+                            <option value="20">20</option>
+                            <option value="25">25</option>
+                            <option value="30">30</option>
+                            <option value="35">35</option>
+                            <option value="40">40</option>
+                            <option value="45">45</option>
+                            <option value="50">50</option>
+                            <option value="55">55</option>
+                        </select>
+                        <label for="minutes">分</label>
+                    </div>
+                    
+                    <div class="status-selector">
+                        <select id="status" name="status">
+                            <option value="" disabled selected>または状態を選択</option>
+                            <option value="paused">一時停止中</option>
+                            <option value="stop">停止</option>
+                            <option value="free_entry_ended">自由入場終了</option>
+                            <option value="morning_ended">午前の部受付終了</option>
+                            <option value="reception_ended">受付終了</option>
+                            <option value="reservation_only">予約のみ</option>
+                            <option value="no_wait">待ちなし</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" id="submit-button">投稿する</button>
+                </div>
+            </form>
+              <div id="result" class="hidden">
+                <h2>投稿内容</h2>
+                <p id="result-message"></p>
+                <div class="buttons">
+                    <button id="new-post-button">新規投稿</button>
+                </div>
+            </div>
+            
+            <!-- 確認モーダル -->
+            <div id="confirmation-modal" class="modal hidden">
+                <div class="modal-content">
+                    <h2>投稿内容の確認</h2>
+                    <p id="confirmation-message"></p>
+                    <div class="buttons">
+                        <button id="cancel-button">キャンセル</button>
+                        <button id="confirm-button">投稿する</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <div id="notification" class="hidden">
+            <p id="notification-message"></p>
+        </div>
+        
+        <footer>
+            <p>© 2025 大阪万博パビリオン待ち時間ポスト</p>
+        </footer>
+    </div>
+    
+    <script src="js/script.js"></script>
+</body>
+</html>
