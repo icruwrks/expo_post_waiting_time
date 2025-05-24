@@ -320,3 +320,286 @@ const DISCORD_WEBHOOK_URL = "あなたのDiscord WebhookのURL";
 3. **本番段階:** セキュリティ対策を施し、両方をデプロイ
 
 これらの手順に沿って実装することで、安全にDiscordとの連携が実現できます。本番環境では必ずバックエンドAPIを経由する方法を採用し、Webhookの保護を徹底してください。
+
+## 9. Discord Botを使った連携手順
+
+Webhookとは別にDiscord Botを作成して連携する方法も有効です。Botを使用すると、双方向のやり取りや高度な機能を実装できます。
+
+### 9.1. Discord Botの作成
+
+1. **Discord Developer Portalにアクセス**
+   - [Discord Developer Portal](https://discord.com/developers/applications)にアクセス
+   - Discordアカウントでログインする
+
+2. **アプリケーションの作成**
+   - 「New Application」ボタンをクリック
+   - アプリケーション名を入力（例：「万博待ち時間Bot」）
+   - 利用規約に同意して「Create」をクリック
+
+3. **Botの設定**
+   - 左側のメニューから「Bot」を選択
+   - 「Add Bot」ボタンをクリック
+   - 確認ダイアログで「Yes, do it!」をクリック
+
+4. **Botの権限設定**
+   - 「Public Bot」のオプションを必要に応じて設定（他のユーザーがBotを追加できるか）
+   - 「Requires OAuth2 Code Grant」はオフのままにする
+   - 「Privileged Gateway Intents」セクションで必要な権限を有効化
+     - Message Content Intent（メッセージ内容へのアクセス）
+     - Server Members Intent（必要に応じて）
+     - Presence Intent（必要に応じて）
+
+5. **Botトークンの取得**
+   - 「Reset Token」をクリックしてトークンをリセット（または「Copy」でコピー）
+   - 表示されたトークンを安全な場所に保存（**このトークンは秘密にしてください**）
+
+6. **Botをサーバーに招待**
+   - 左側のメニューから「OAuth2」→「URL Generator」を選択
+   - 「Scopes」で「bot」を選択
+   - 「Bot Permissions」で必要な権限を選択
+     - 基本的な権限: Send Messages, Read Message History, Embed Links
+     - 必要に応じて追加の権限を選択
+   - 生成されたURLをブラウザで開く
+   - Botを追加するサーバーを選択して「認証」をクリック
+
+### 9.2. Bot用バックエンドの実装（Node.js例）
+
+1. **プロジェクトのセットアップ**
+
+   ```bash
+   mkdir expo-discord-bot
+   cd expo-discord-bot
+   npm init -y
+   npm install discord.js dotenv express
+   ```
+
+2. **環境変数の設定**
+
+   `.env`ファイルを作成:
+   ```
+   DISCORD_BOT_TOKEN=あなたのBotトークン
+   DISCORD_CHANNEL_ID=投稿先のチャンネルID
+   PORT=3000
+   ```
+
+3. **Botの実装**
+
+   `bot.js`を作成:
+
+   ```javascript
+   const { Client, GatewayIntentBits, Partials } = require('discord.js');
+   const express = require('express');
+   require('dotenv').config();
+
+   // Discord Bot設定
+   const client = new Client({
+     intents: [
+       GatewayIntentBits.Guilds,
+       GatewayIntentBits.GuildMessages,
+       GatewayIntentBits.MessageContent
+     ],
+     partials: [Partials.Channel]
+   });
+
+   // Express APIサーバー
+   const app = express();
+   const PORT = process.env.PORT || 3000;
+
+   app.use(express.json());
+
+   // API設定
+   app.post('/api/send-message', async (req, res) => {
+     try {
+       const { message } = req.body;
+       
+       if (!message) {
+         return res.status(400).json({ error: 'メッセージが必要です' });
+       }
+
+       // チャンネルを取得してメッセージを送信
+       const channel = client.channels.cache.get(process.env.DISCORD_CHANNEL_ID);
+       if (!channel) {
+         return res.status(404).json({ error: 'チャンネルが見つかりません' });
+       }
+
+       await channel.send(message);
+       res.status(200).json({ success: true, message: '投稿に成功しました' });
+     } catch (error) {
+       console.error('メッセージ送信エラー:', error);
+       res.status(500).json({ error: '投稿に失敗しました' });
+     }
+   });
+
+   // Botログイン時の処理
+   client.once('ready', () => {
+     console.log(`${client.user.tag} としてログインしました`);
+     
+     // API起動
+     app.listen(PORT, () => {
+       console.log(`APIサーバーが起動しました: http://localhost:${PORT}`);
+     });
+   });
+
+   // Botログイン
+   client.login(process.env.DISCORD_BOT_TOKEN);
+   ```
+
+4. **Botの起動**
+
+   ```bash
+   node bot.js
+   ```
+
+### 9.3. フロントエンド側の実装
+
+1. **script.jsファイルを編集**
+
+   ```javascript
+   // BotのAPIエンドポイント
+   const BOT_API_URL = "https://あなたのAPIのURL/api/send-message";
+
+   // Discordにメッセージを送信する関数
+   async function sendToDiscordBot(message) {
+     try {
+       const response = await fetch(BOT_API_URL, {
+         method: 'POST',
+         headers: {
+           'Content-Type': 'application/json',
+         },
+         body: JSON.stringify({ message })
+       });
+
+       if (!response.ok) {
+         const data = await response.json();
+         throw new Error(data.error || `API error: ${response.status}`);
+       }
+
+       return await response.json();
+     } catch (error) {
+       console.error("Discord投稿エラー:", error);
+       throw error;
+     }
+   }
+   ```
+
+### 9.4. Bot機能の拡張例
+
+#### コマンド応答機能の追加
+
+```javascript
+// bot.jsに以下を追加
+client.on('messageCreate', async message => {
+  // Botからのメッセージは無視
+  if (message.author.bot) return;
+
+  // コマンドの処理
+  if (message.content === '!待ち時間') {
+    await message.reply('現在の待ち時間情報を取得中です...');
+    // ここで待ち時間データを取得・処理する処理
+  }
+  
+  if (message.content === '!ヘルプ') {
+    await message.reply('**使用可能なコマンド**\n!待ち時間 - 現在の待ち時間を表示\n!ヘルプ - このヘルプを表示');
+  }
+});
+```
+
+#### 定期的な情報投稿
+
+```javascript
+// bot.jsに以下を追加
+// 1時間ごとに待ち時間の概要を投稿
+setInterval(async () => {
+  try {
+    const channel = client.channels.cache.get(process.env.DISCORD_CHANNEL_ID);
+    if (channel) {
+      // ここで最新の待ち時間データを取得する処理
+      const waitingTimeData = '待ち時間データ（取得処理を実装してください）';
+      await channel.send(`**定期更新**: ${new Date().toLocaleString('ja-JP')}\n${waitingTimeData}`);
+    }
+  } catch (error) {
+    console.error('定期投稿エラー:', error);
+  }
+}, 60 * 60 * 1000); // 1時間ごと（ミリ秒単位）
+```
+
+### 9.5. Botとウェブフックの比較
+
+| 機能 | Discord Bot | Webhook |
+|------|-------------|---------|
+| 双方向通信 | ✅ 可能 | ❌ 不可 |
+| コマンド応答 | ✅ 可能 | ❌ 不可 |
+| メッセージ閲覧 | ✅ 可能 | ❌ 不可 |
+| 実装の複雑さ | やや複雑 | シンプル |
+| 運用コスト | やや高い | 低い |
+| カスタマイズ性 | 高い | 限定的 |
+
+### 9.6. Botを選ぶべき状況
+
+以下のような場合はWebhookよりBotを選択すると良いでしょう：
+
+1. **ユーザーからのコマンドに応答する必要がある場合**
+   - 例: 「!待ち時間」コマンドで最新データを取得
+
+2. **自動応答やチャット機能が必要な場合**
+   - 例: ユーザーの質問に自動応答
+
+3. **複数のチャンネルを管理する場合**
+   - 例: 設定に応じて適切なチャンネルに投稿
+
+4. **高度な権限管理が必要な場合**
+   - 例: 特定のロールを持つユーザーのみコマンドを使用可能
+
+5. **リアクションやボタンなどのインタラクティブ機能が必要な場合**
+   - 例: リアクションによる投票機能
+
+### 9.7. セキュリティ上の注意点
+
+1. **Botトークンの保護**
+   - Botトークンは絶対に公開しないこと
+   - 環境変数として安全に保管
+   - トークンが漏洩した場合はすぐに再生成
+
+2. **権限の最小化**
+   - Botに必要最小限の権限のみを付与
+   - 「Administrator」権限の付与は避ける
+
+3. **入力検証**
+   - ユーザーからの入力は必ず検証
+   - SQLインジェクションやコマンドインジェクションの防止
+
+4. **レート制限の実装**
+   - APIリクエストの回数制限を設定
+   - Discordの制限に注意（過剰なメッセージ送信など）
+
+### 9.8. デプロイ方法
+
+1. **Heroku（基本的なホスティング）**
+   ```bash
+   # Procfileを作成
+   echo "worker: node bot.js" > Procfile
+   # Gitリポジトリを初期化
+   git init
+   git add .
+   git commit -m "Initial commit"
+   # Herokuにデプロイ
+   heroku create
+   heroku config:set DISCORD_BOT_TOKEN=あなたのトークン
+   heroku config:set DISCORD_CHANNEL_ID=チャンネルID
+   git push heroku main
+   ```
+
+2. **Railway/Renderなど（新しいPaaS）**
+   - GitHubリポジトリと連携してデプロイ
+   - 環境変数を設定画面から追加
+
+3. **VPS（より高度な設定が必要）**
+   - PM2などのプロセスマネージャを使用
+   ```bash
+   npm install -g pm2
+   pm2 start bot.js
+   pm2 save
+   pm2 startup
+   ```
+
+Botの実装方法はプロジェクトの要件によって変わりますが、上記の手順で基本的なBot連携を実現できます。必要に応じてコマンドや機能をカスタマイズしてください。
